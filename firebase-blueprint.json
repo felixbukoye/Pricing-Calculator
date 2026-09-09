@@ -1,0 +1,174 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User account information and profile details.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The unique Firebase Auth UID of the user.",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "User's registered email address.",
+          "maxLength": 256
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User's display name.",
+          "maxLength": 128
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "Profile picture URL.",
+          "maxLength": 1024
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp or server timestamp when account was created.",
+          "maxLength": 64
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp or server timestamp when account was last updated.",
+          "maxLength": 64
+        }
+      },
+      "required": ["userId", "email", "createdAt"]
+    },
+    "UserFile": {
+      "title": "UserFile",
+      "description": "User-specific file metadata and uploaded file tracking.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Document ID matching file record ID.",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "description": "UID of the owner who uploaded the file.",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "fileName": {
+          "type": "string",
+          "description": "Original file name with extension.",
+          "maxLength": 256
+        },
+        "fileType": {
+          "type": "string",
+          "description": "MIME type of the file (e.g. image/png, application/pdf).",
+          "maxLength": 128
+        },
+        "fileSize": {
+          "type": "number",
+          "description": "Size of the file in bytes."
+        },
+        "storagePath": {
+          "type": "string",
+          "description": "Firebase Storage or cloud storage object path.",
+          "maxLength": 512
+        },
+        "downloadUrl": {
+          "type": "string",
+          "description": "Direct download or access URL.",
+          "maxLength": 2048
+        },
+        "uploadDate": {
+          "type": "string",
+          "description": "Human readable or ISO upload date string.",
+          "maxLength": 64
+        },
+        "description": {
+          "type": "string",
+          "description": "User optional description or notes about the file.",
+          "maxLength": 1000
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp.",
+          "maxLength": 64
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last update timestamp.",
+          "maxLength": 64
+        }
+      },
+      "required": ["id", "userId", "fileName", "fileType", "fileSize", "uploadDate"]
+    },
+    "SavedCalculation": {
+      "title": "SavedCalculation",
+      "description": "Saved product costing and pricing calculation for the user.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Calculation document ID.",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "description": "UID of the calculation owner.",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "productName": {
+          "type": "string",
+          "description": "Name of the product.",
+          "maxLength": 200
+        },
+        "batchUnits": {
+          "type": "number",
+          "description": "Number of units per batch."
+        },
+        "trueCostPerUnit": {
+          "type": "number",
+          "description": "Calculated true cost per unit in NGN."
+        },
+        "activeSellingPrice": {
+          "type": "number",
+          "description": "Active selling price in NGN."
+        },
+        "payloadJson": {
+          "type": "string",
+          "description": "Serialized calculation details including materials, packaging, labour, overheads.",
+          "maxLength": 50000
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp.",
+          "maxLength": 64
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last update timestamp.",
+          "maxLength": 64
+        }
+      },
+      "required": ["id", "userId", "productName", "batchUnits", "trueCostPerUnit", "activeSellingPrice"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile document containing account information. Only accessible by the authenticated owner."
+    },
+    "/users/{userId}/files/{fileId}": {
+      "schema": "UserFile",
+      "description": "Files uploaded by the user with metadata, upload dates, and access links. Strictly private to the user."
+    },
+    "/users/{userId}/calculations/{calcId}": {
+      "schema": "SavedCalculation",
+      "description": "Product cost calculations saved by the user. Strictly private to the user."
+    }
+  }
+}

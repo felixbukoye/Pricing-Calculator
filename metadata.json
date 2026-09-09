@@ -1,0 +1,8 @@
+{
+  "name": "Product Cost & Selling Price Calculator",
+  "description": "Dual-calculator workflow for product costing and sustainable selling price calculation in Nigerian Naira (₦) with markup vs. margin comparison.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

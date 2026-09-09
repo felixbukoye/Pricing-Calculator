@@ -1,0 +1,114 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default Deny Catch-All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helper Functions ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation for UserProfile
+    function isValidUserProfile(data, userId) {
+      return data.userId == userId
+        && data.email is string && data.email.size() > 0 && data.email.size() <= 256
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 128))
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 1024))
+        && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64))
+        && (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    // Validation for UserFile
+    function isValidUserFile(data, userId) {
+      return data.id is string && isValidId(data.id)
+        && data.userId == userId
+        && data.fileName is string && data.fileName.size() > 0 && data.fileName.size() <= 256
+        && data.fileType is string && data.fileType.size() > 0 && data.fileType.size() <= 128
+        && data.fileSize is number && data.fileSize >= 0
+        && (!('storagePath' in data) || (data.storagePath is string && data.storagePath.size() <= 512))
+        && (!('downloadUrl' in data) || (data.downloadUrl is string && data.downloadUrl.size() <= 2048))
+        && (!('dataUrl' in data) || (data.dataUrl is string && data.dataUrl.size() <= 1048576))
+        && (!('uploadDate' in data) || (data.uploadDate is string && data.uploadDate.size() <= 64))
+        && (!('description' in data) || (data.description is string && data.description.size() <= 1000))
+        && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64))
+        && (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    // Validation for SavedCalculation
+    function isValidSavedCalculation(data, userId) {
+      return data.id is string && isValidId(data.id)
+        && data.userId == userId
+        && data.productName is string && data.productName.size() > 0 && data.productName.size() <= 200
+        && data.batchUnits is number && data.batchUnits > 0
+        && data.trueCostPerUnit is number
+        && data.activeSellingPrice is number
+        && (!('payloadJson' in data) || (data.payloadJson is string && data.payloadJson.size() <= 50000))
+        && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64))
+        && (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    // --- Collections ---
+
+    // User Profile Document
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming(), userId);
+      allow update: if isOwner(userId) && isValidId(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().userId == existing().userId
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'updatedAt', 'email']);
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      // User Files Subcollection
+      match /files/{fileId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(fileId);
+        allow list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(fileId)
+          && incoming().id == fileId
+          && isValidUserFile(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(fileId)
+          && incoming().id == existing().id
+          && incoming().userId == existing().userId
+          && isValidUserFile(incoming(), userId)
+          && incoming().diff(existing()).affectedKeys().hasOnly(['fileName', 'description', 'downloadUrl', 'dataUrl', 'storagePath', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(fileId);
+      }
+
+      // User Saved Calculations Subcollection
+      match /calculations/{calcId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(calcId);
+        allow list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(calcId)
+          && incoming().id == calcId
+          && isValidSavedCalculation(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(calcId)
+          && incoming().id == existing().id
+          && incoming().userId == existing().userId
+          && isValidSavedCalculation(incoming(), userId)
+          && incoming().diff(existing()).affectedKeys().hasOnly(['productName', 'batchUnits', 'trueCostPerUnit', 'activeSellingPrice', 'payloadJson', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(calcId);
+      }
+    }
+  }
+}
