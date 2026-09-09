@@ -27,11 +27,6 @@ import { PrintSummarySheet } from './components/PrintSummarySheet';
 import { ExecutiveMetricStrip } from './components/ExecutiveMetricStrip';
 import { DashboardNavBar, DashboardTabId } from './components/DashboardNavBar';
 import { DashboardStepFooter } from './components/DashboardStepFooter';
-import { AuthModal } from './components/AuthModal';
-import { UserAccountModal } from './components/UserAccountModal';
-import { useAuth } from './contexts/AuthContext';
-import { saveUserCalculation } from './services/firebaseDataService';
-import { SavedCalculationRecord } from './types';
 
 export default function App() {
   const initialPreset = BUSINESS_PRESETS[0];
@@ -47,25 +42,9 @@ export default function App() {
   const [sellingCosts, setSellingCosts] = useState<SellingCostItem[]>(initialPreset.sellingCosts);
   const [discount, setDiscount] = useState<DiscountConfig>(initialPreset.discount);
 
-  // Auth & Cloud State
-  const { currentUser, projectId } = useAuth();
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
-  const [accountModalTab, setAccountModalTab] = useState<'account' | 'files' | 'calculations' | 'rules'>('account');
-  const [isSavingToCloud, setIsSavingToCloud] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-
   // UI state
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<DashboardTabId>('1');
-
-  // Show Toast
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 4000);
-  };
 
   // Section reference for quick scroll
   const pricingSectionRef = useRef<HTMLDivElement>(null);
@@ -156,65 +135,6 @@ export default function App() {
     setDiscount({
       testDiscountPercent: 10,
     });
-  };
-
-  // Save current calculation to Cloud Firestore
-  const handleSaveToCloud = async () => {
-    if (!currentUser?.uid) {
-      setIsAuthModalOpen(true);
-      return;
-    }
-
-    setIsSavingToCloud(true);
-    try {
-      const payload = {
-        batchUnits,
-        materials,
-        packaging,
-        labour,
-        overhead,
-        pricing,
-        sellingCosts,
-        discount,
-      };
-
-      await saveUserCalculation(currentUser.uid, {
-        productName: productName.trim() || 'Untitled Product',
-        batchUnits: typeof batchUnits === 'number' ? batchUnits : 1,
-        trueCostPerUnit: results.trueCostPerUnit,
-        activeSellingPrice: results.activeSellingPrice,
-        payloadJson: JSON.stringify(payload),
-      });
-
-      showToast(`Calculation for "${productName || 'Product'}" saved to Cloud Firestore!`);
-    } catch (err: any) {
-      console.error('Error saving calculation to Firestore:', err);
-      showToast(`Failed to save calculation: ${err?.message || 'Error'}`);
-    } finally {
-      setIsSavingToCloud(false);
-    }
-  };
-
-  // Restore calculation from saved record
-  const handleLoadCalculation = (record: SavedCalculationRecord) => {
-    try {
-      const parsed = JSON.parse(record.payloadJson);
-      setActivePresetId(null);
-      setProductName(record.productName || '');
-      if (parsed.batchUnits !== undefined) setBatchUnits(parsed.batchUnits);
-      if (parsed.materials) setMaterials(parsed.materials);
-      if (parsed.packaging) setPackaging(parsed.packaging);
-      if (parsed.labour) setLabour(parsed.labour);
-      if (parsed.overhead) setOverhead(parsed.overhead);
-      if (parsed.pricing) setPricing(parsed.pricing);
-      if (parsed.sellingCosts) setSellingCosts(parsed.sellingCosts);
-      if (parsed.discount) setDiscount(parsed.discount);
-
-      showToast(`Loaded "${record.productName}" from Cloud Firestore.`);
-    } catch (e) {
-      console.error('Failed to load calculation record:', e);
-      showToast('Could not load calculation record data.');
-    }
   };
 
   // Section 2 Materials handlers
@@ -395,13 +315,6 @@ export default function App() {
           onPrint={handlePrint}
           onToggleGuide={() => setIsGuideOpen(!isGuideOpen)}
           isGuideOpen={isGuideOpen}
-          currentUser={currentUser}
-          onOpenAuth={() => setIsAuthModalOpen(true)}
-          onOpenAccount={(tab) => {
-            setAccountModalTab(tab || 'account');
-            setIsAccountModalOpen(true);
-          }}
-          projectId={projectId}
         />
 
         {/* Collapsible Quick Guide */}
@@ -567,8 +480,6 @@ export default function App() {
                     testDiscountPercent={discount.testDiscountPercent}
                     onChangeDiscount={handleChangeDiscount}
                     onPrint={handlePrint}
-                    onSaveToCloud={handleSaveToCloud}
-                    isSavingToCloud={isSavingToCloud}
                   />
                   <DashboardStepFooter currentTab="9" onSelectTab={handleSelectTab} />
                 </div>
@@ -665,8 +576,6 @@ export default function App() {
                 testDiscountPercent={discount.testDiscountPercent}
                 onChangeDiscount={handleChangeDiscount}
                 onPrint={handlePrint}
-                onSaveToCloud={handleSaveToCloud}
-                isSavingToCloud={isSavingToCloud}
               />
             </div>
           )}
@@ -685,31 +594,6 @@ export default function App() {
         sellingCosts={sellingCosts}
         results={results}
       />
-
-      {/* Authentication Modal */}
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        onSuccess={() => {
-          showToast('Signed in successfully! Your data will now sync to Firebase.');
-        }}
-      />
-
-      {/* User Account & File Storage Modal */}
-      <UserAccountModal
-        isOpen={isAccountModalOpen}
-        onClose={() => setIsAccountModalOpen(false)}
-        initialTab={accountModalTab}
-        onLoadCalculation={handleLoadCalculation}
-      />
-
-      {/* Cloud Toast Notification */}
-      {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-xl border border-slate-700 flex items-center gap-2.5 animate-bounce">
-          <div className="w-2 h-2 rounded-full bg-emerald-400" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
     </div>
   );
 }

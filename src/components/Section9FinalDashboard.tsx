@@ -6,8 +6,6 @@ import {
   Check,
   Percent,
   ShieldCheck,
-  CloudUpload,
-  Loader2,
 } from 'lucide-react';
 import { CalculationResults, PricingConfig } from '../types';
 import { formatNaira, formatPercent } from '../utils/formatters';
@@ -19,8 +17,6 @@ interface Section9FinalDashboardProps {
   testDiscountPercent: number | '';
   onChangeDiscount: (value: number | '') => void;
   onPrint: () => void;
-  onSaveToCloud?: () => void;
-  isSavingToCloud?: boolean;
 }
 
 export const Section9FinalDashboard: React.FC<Section9FinalDashboardProps> = ({
@@ -30,8 +26,6 @@ export const Section9FinalDashboard: React.FC<Section9FinalDashboardProps> = ({
   testDiscountPercent,
   onChangeDiscount,
   onPrint,
-  onSaveToCloud,
-  isSavingToCloud,
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -111,23 +105,6 @@ Calculated with Cost & Pricing Calculator (₦)`;
           </div>
 
           <div className="flex items-center gap-2">
-            {onSaveToCloud && (
-              <button
-                type="button"
-                id="save-calculation-cloud-btn"
-                onClick={onSaveToCloud}
-                disabled={isSavingToCloud}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-xs font-semibold text-white transition-colors cursor-pointer disabled:opacity-50"
-                title="Save calculation to your account in Firebase"
-              >
-                {isSavingToCloud ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <CloudUpload className="w-3.5 h-3.5" />
-                )}
-                <span>Save to Cloud</span>
-              </button>
-            )}
             <button
               type="button"
               id="copy-summary-btn"
